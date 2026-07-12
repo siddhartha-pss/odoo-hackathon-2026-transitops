@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { prisma } from '../index';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, AuthRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -38,7 +38,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response): Promise<v
 });
 
 // POST /api/expenses
-router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/', authenticate, requireRole('fleet_manager', 'financial_analyst'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { category, amount, description, vehicleId, driverId, tripId, date, receiptUrl } = req.body;
     if (!category || !amount) {
@@ -97,7 +97,7 @@ router.get('/summary/breakdown', authenticate, async (_req: AuthRequest, res: Re
 });
 
 // DELETE /api/expenses/:id
-router.delete('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.delete('/:id', authenticate, requireRole('fleet_manager', 'financial_analyst'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     await prisma.expense.delete({ where: { id: req.params.id } });
     res.json({ message: 'Expense deleted' });

@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { prisma } from '../index';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, AuthRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -32,7 +32,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response): Promise<v
 });
 
 // POST /api/fuel
-router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/', authenticate, requireRole('fleet_manager', 'financial_analyst', 'dispatcher'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { vehicleId, driverId, tripId, quantity, costPerUnit, odometer, fuelType, station, date } = req.body;
     if (!vehicleId || !quantity || !costPerUnit || !odometer) {
@@ -116,7 +116,7 @@ router.get('/analytics/summary', authenticate, async (_req: AuthRequest, res: Re
 });
 
 // DELETE /api/fuel/:id
-router.delete('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.delete('/:id', authenticate, requireRole('fleet_manager', 'financial_analyst'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     await prisma.fuelLog.delete({ where: { id: req.params.id } });
     res.json({ message: 'Fuel log deleted' });

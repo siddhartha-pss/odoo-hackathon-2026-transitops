@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { prisma } from '../index';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, AuthRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -46,7 +46,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response): Promis
 });
 
 // POST /api/maintenance
-router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/', authenticate, requireRole('fleet_manager'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { vehicleId, type, description, scheduledDate, garageName, cost, priority } = req.body;
     if (!vehicleId || !description || !scheduledDate) {
@@ -82,7 +82,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
 });
 
 // PATCH /api/maintenance/:id/start
-router.patch('/:id/start', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/:id/start', authenticate, requireRole('fleet_manager'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const record = await prisma.maintenance.findUnique({ where: { id } });
@@ -100,7 +100,7 @@ router.patch('/:id/start', authenticate, async (req: AuthRequest, res: Response)
 });
 
 // PATCH /api/maintenance/:id/complete
-router.patch('/:id/complete', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/:id/complete', authenticate, requireRole('fleet_manager'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { cost, partsReplaced, invoiceUrl } = req.body;
@@ -144,7 +144,7 @@ router.patch('/:id/complete', authenticate, async (req: AuthRequest, res: Respon
 });
 
 // PUT /api/maintenance/:id
-router.put('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/:id', authenticate, requireRole('fleet_manager'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const data: any = { ...req.body };
@@ -159,7 +159,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response): Promis
 });
 
 // DELETE /api/maintenance/:id
-router.delete('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.delete('/:id', authenticate, requireRole('fleet_manager'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     await prisma.maintenance.delete({ where: { id: req.params.id } });
     res.json({ message: 'Maintenance record deleted' });

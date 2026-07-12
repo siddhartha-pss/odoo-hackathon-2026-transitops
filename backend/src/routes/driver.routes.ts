@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { prisma } from '../index';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, AuthRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -39,7 +39,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response): Promise<v
 });
 
 // GET /api/drivers/:id
-router.get('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.get('/:id', authenticate, requireRole('fleet_manager', 'safety_officer'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const driver = await prisma.driver.findUnique({
       where: { id: req.params.id },
@@ -57,7 +57,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response): Promis
 });
 
 // POST /api/drivers
-router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/', authenticate, requireRole('fleet_manager', 'safety_officer'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { name, phone, emergencyContact, photo, licenseNumber, licenseCategory,
             licenseExpiry, medicalCertExpiry } = req.body;
@@ -94,7 +94,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
 });
 
 // PUT /api/drivers/:id
-router.put('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/:id', authenticate, requireRole('fleet_manager', 'safety_officer'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const existing = await prisma.driver.findUnique({ where: { id } });
@@ -125,7 +125,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response): Promis
 });
 
 // DELETE /api/drivers/:id
-router.delete('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.delete('/:id', authenticate, requireRole('fleet_manager', 'safety_officer'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const driver = await prisma.driver.findUnique({ where: { id } });

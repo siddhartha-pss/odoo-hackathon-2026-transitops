@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { prisma } from '../index';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, AuthRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -77,7 +77,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response): Promis
 });
 
 // POST /api/vehicles - Create vehicle
-router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/', authenticate, requireRole('fleet_manager'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { registrationNumber, model, manufacturer, type, capacity, currentOdometer,
             acquisitionCost, acquisitionDate, insuranceExpiry, fitnessExpiry, rcExpiry, 
@@ -134,7 +134,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
 });
 
 // PUT /api/vehicles/:id - Update vehicle
-router.put('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/:id', authenticate, requireRole('fleet_manager'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const existing = await prisma.vehicle.findUnique({ where: { id } });
@@ -181,7 +181,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response): Promis
 });
 
 // DELETE /api/vehicles/:id
-router.delete('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.delete('/:id', authenticate, requireRole('fleet_manager'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const vehicle = await prisma.vehicle.findUnique({ where: { id } });
@@ -218,7 +218,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response): Pro
 });
 
 // PATCH /api/vehicles/:id/status
-router.patch('/:id/status', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/:id/status', authenticate, requireRole('fleet_manager'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { status } = req.body;

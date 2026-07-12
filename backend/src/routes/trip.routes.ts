@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { prisma } from '../index';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, AuthRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -69,7 +69,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response): Promis
 });
 
 // POST /api/trips - Create trip with full business rule enforcement
-router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/', authenticate, requireRole('fleet_manager', 'dispatcher'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { vehicleId, driverId, pickup, destination, cargoWeight, cargoType,
             estimatedDistance, estimatedFuel, estimatedCost, scheduledAt, revenue } = req.body;
@@ -149,7 +149,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
 });
 
 // PATCH /api/trips/:id/dispatch
-router.patch('/:id/dispatch', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/:id/dispatch', authenticate, requireRole('fleet_manager', 'dispatcher'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const trip = await prisma.trip.findUnique({ where: { id }, include: { vehicle: true, driver: true } });
@@ -179,7 +179,7 @@ router.patch('/:id/dispatch', authenticate, async (req: AuthRequest, res: Respon
 });
 
 // PATCH /api/trips/:id/start
-router.patch('/:id/start', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/:id/start', authenticate, requireRole('fleet_manager', 'dispatcher'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const trip = await prisma.trip.findUnique({ where: { id } });
@@ -199,7 +199,7 @@ router.patch('/:id/start', authenticate, async (req: AuthRequest, res: Response)
 });
 
 // PATCH /api/trips/:id/complete
-router.patch('/:id/complete', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/:id/complete', authenticate, requireRole('fleet_manager', 'dispatcher'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { actualDistance, actualFuel, actualCost } = req.body;
@@ -243,7 +243,7 @@ router.patch('/:id/complete', authenticate, async (req: AuthRequest, res: Respon
 });
 
 // PATCH /api/trips/:id/cancel
-router.patch('/:id/cancel', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/:id/cancel', authenticate, requireRole('fleet_manager', 'dispatcher'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -275,7 +275,7 @@ router.patch('/:id/cancel', authenticate, async (req: AuthRequest, res: Response
 });
 
 // PUT /api/trips/:id
-router.put('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/:id', authenticate, requireRole('fleet_manager', 'dispatcher'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const trip = await prisma.trip.findUnique({ where: { id } });
