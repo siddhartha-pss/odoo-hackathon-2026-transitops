@@ -1,0 +1,316 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// USERS & AUTH
+// ============================================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("fleet_manager") // fleet_manager, dispatcher, safety_officer, financial_analyst
+  avatar    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notifications Notification[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+// ============================================================
+// VEHICLES
+// ============================================================
+
+model Vehicle {
+  id                 String   @id @default(uuid())
+  registrationNumber String   @unique
+  model              String
+  manufacturer       String
+  type               String   @default("Truck") // Truck, Bus, Van, Car
+  capacity           Float    // in tons or passengers
+  currentOdometer    Float    @default(0)
+  acquisitionCost    Float    @default(0)
+  acquisitionDate    DateTime @default(now())
+  currentStatus      String   @default("available") // active, available, in_shop, retired
+  
+  // Insurance & Documents
+  insuranceExpiry    DateTime?
+  fitnessExpiry      DateTime?
+  rcExpiry           DateTime?
+  pollutionExpiry    DateTime?
+  
+  // Media
+  imageUrl           String?
+  qrCode             String?
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  trips       Trip[]
+  fuelLogs    FuelLog[]
+  maintenance Maintenance[]
+  expenses    Expense[]
+  documents   Document[]
+
+  @@map("vehicles")
+}
+
+// ============================================================
+// DRIVERS
+// ============================================================
+
+model Driver {
+  id               String   @id @default(uuid())
+  name             String
+  phone            String
+  emergencyContact String?
+  photo            String?
+  
+  // License
+  licenseNumber    String   @unique
+  licenseCategory  String   @default("HMV") // LMV, HMV, HGV
+  licenseExpiry    DateTime
+  
+  // Health & Compliance
+  medicalCertExpiry DateTime?
+  
+  // Performance
+  safetyScore      Float    @default(100)
+  performanceRating Float   @default(4.0)
+  totalTrips       Int      @default(0)
+  totalDistance     Float    @default(0)
+  
+  // Status
+  currentStatus    String   @default("available") // available, on_trip, on_leave, suspended
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  trips     Trip[]
+  fuelLogs  FuelLog[]
+  documents Document[]
+
+  @@map("drivers")
+}
+
+// ============================================================
+// TRIPS
+// ============================================================
+
+model Trip {
+  id                String   @id @default(uuid())
+  tripNumber        String   @unique
+  
+  vehicleId         String
+  driverId          String
+  
+  // Route
+  pickup            String
+  destination       String
+  estimatedDistance  Float    @default(0)
+  actualDistance     Float?
+  
+  // Cargo
+  cargoWeight       Float    @default(0)
+  cargoType         String   @default("General")
+  
+  // Fuel & Cost
+  estimatedFuel     Float    @default(0)
+  actualFuel        Float?
+  estimatedCost     Float    @default(0)
+  actualCost        Float?
+  
+  // GPS
+  gpsLat            Float?
+  gpsLng            Float?
+  
+  // Status
+  status            String   @default("draft") // draft, dispatched, in_progress, completed, cancelled
+  
+  // Timeline
+  scheduledAt       DateTime?
+  dispatchedAt      DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  cancelReason      String?
+  
+  // Revenue
+  revenue           Float    @default(0)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  vehicle  Vehicle   @relation(fields: [vehicleId], references: [id])
+  driver   Driver    @relation(fields: [driverId], references: [id])
+  fuelLogs FuelLog[]
+  expenses Expense[]
+
+  @@map("trips")
+}
+
+// ============================================================
+// FUEL LOGS
+// ============================================================
+
+model FuelLog {
+  id          String   @id @default(uuid())
+  vehicleId   String
+  driverId    String?
+  tripId      String?
+  
+  date        DateTime @default(now())
+  quantity    Float    // liters
+  costPerUnit Float
+  totalCost   Float
+  odometer    Float
+  fuelType    String   @default("Diesel") // Diesel, Petrol, CNG, Electric
+  station     String?
+  
+  createdAt   DateTime @default(now())
+
+  vehicle Vehicle  @relation(fields: [vehicleId], references: [id])
+  driver  Driver?  @relation(fields: [driverId], references: [id])
+  trip    Trip?    @relation(fields: [tripId], references: [id])
+
+  @@map("fuel_logs")
+}
+
+// ============================================================
+// MAINTENANCE
+// ============================================================
+
+model Maintenance {
+  id             String   @id @default(uuid())
+  vehicleId      String
+  
+  type           String   @default("preventive") // preventive, corrective
+  description    String
+  
+  scheduledDate  DateTime
+  completedDate  DateTime?
+  
+  garageName     String?
+  cost           Float    @default(0)
+  partsReplaced  String?  // JSON string of parts
+  invoiceUrl     String?
+  
+  status         String   @default("scheduled") // scheduled, in_progress, completed
+  priority       String   @default("medium")    // low, medium, high, critical
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+
+  @@map("maintenance")
+}
+
+// ============================================================
+// EXPENSES
+// ============================================================
+
+model Expense {
+  id          String   @id @default(uuid())
+  category    String   // fuel, maintenance, tolls, driver_salary, insurance, miscellaneous
+  amount      Float
+  description String?
+  
+  vehicleId   String?
+  driverId    String?
+  tripId      String?
+  
+  date        DateTime @default(now())
+  receiptUrl  String?
+  
+  createdAt   DateTime @default(now())
+
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
+  trip    Trip?    @relation(fields: [tripId], references: [id])
+
+  @@map("expenses")
+}
+
+// ============================================================
+// DOCUMENTS
+// ============================================================
+
+model Document {
+  id         String   @id @default(uuid())
+  entityType String   // vehicle, driver
+  entityId   String
+  
+  name       String
+  type       String   // insurance, fitness, rc, pollution, license, medical
+  url        String?
+  expiryDate DateTime?
+
+  vehicleId  String?
+  driverId   String?
+  
+  createdAt  DateTime @default(now())
+
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
+  driver  Driver?  @relation(fields: [driverId], references: [id])
+
+  @@map("documents")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  
+  title     String
+  message   String
+  type      String   @default("info") // info, warning, danger, success
+  read      Boolean  @default(false)
+  
+  entityType String?
+  entityId   String?
+  
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+// ============================================================
+// AUDIT LOGS
+// ============================================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  
+  action     String   // created, updated, deleted, status_changed, dispatched, completed
+  entityType String   // vehicle, driver, trip, maintenance, fuel_log, expense
+  entityId   String
+  details    String?  // JSON string with change details
+  
+  ipAddress  String?
+  
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
